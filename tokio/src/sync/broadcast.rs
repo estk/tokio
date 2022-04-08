@@ -552,7 +552,7 @@ impl<T> Sender<T> {
     /// ```
     pub fn subscribe(&self) -> Receiver<T> {
         let shared = self.shared.clone();
-        new_receiver(shared)
+        new_receiver(shared, None)
     }
 
     /// Returns the number of active receivers
@@ -642,7 +642,8 @@ impl<T> Sender<T> {
     }
 }
 
-fn new_receiver<T>(shared: Arc<Shared<T>>) -> Receiver<T> {
+/// Create a new `Receiver` which reads starting from the tail if `next_pos` is not specified.
+fn new_receiver<T>(shared: Arc<Shared<T>>, next_pos: Option<u64>) -> Receiver<T> {
     let mut tail = shared.tail.lock();
 
     if tail.rx_cnt == MAX_RECEIVERS {
@@ -651,10 +652,9 @@ fn new_receiver<T>(shared: Arc<Shared<T>>) -> Receiver<T> {
 
     tail.rx_cnt = tail.rx_cnt.checked_add(1).expect("overflow");
 
-    let next = tail.pos;
+    let next = next_pos.unwrap_or(tail.pos);
 
     drop(tail);
-
     Receiver { shared, next }
 }
 
@@ -1019,6 +1019,13 @@ impl<T> Drop for Receiver<T> {
                 Err(TryRecvError::Empty) => panic!("unexpected empty broadcast channel"),
             }
         }
+    }
+}
+
+impl<T> Clone for Receiver<T> {
+    fn clone(&self) -> Self {
+        let shared = self.shared.clone();
+        new_receiver(shared, Some(self.next))
     }
 }
 
