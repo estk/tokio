@@ -169,7 +169,7 @@ it, `rustfmt` will update your files locally instead.
 You can run loom tests with
 ```
 cd tokio # tokio crate in workspace
-LOOM_MAX_PREEMPTIONS=1 RUSTFLAGS="--cfg loom" \
+LOOM_MAX_PREEMPTIONS=1 RUSTFLAGS="--cfg tokio_unstable --cfg loom" \
     cargo test --lib --release --features full -- --test-threads=1 --nocapture
 ```
 
